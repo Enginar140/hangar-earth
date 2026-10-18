@@ -126,14 +126,25 @@ SDF = """<?xml version="1.0"?>
           </geometry>
         </visual>
       </link>
-    </model>
+    </model>{buildings}
   </world>
 </sdf>
 """
 
+BUILDINGS = """
+
+    <model name="buildings">
+      <!-- {count} buildings from OpenStreetMap in one mesh -->
+      <static>true</static>
+      <link name="link">
+        <collision name="collision"><geometry><mesh><uri>buildings.obj</uri></mesh></geometry></collision>
+        <visual name="visual"><geometry><mesh><uri>buildings.obj</uri></mesh></geometry></visual>
+      </link>
+    </model>"""
+
 
 def write(t: Terrain, satellite: Image.Image, name: str, out: Path, dem_source: str, img_source: str,
-          credits: list[str]) -> Path:
+          credits: list[str], buildings: list | None = None) -> Path:
     """Write <out>/<name>.sdf and its files. Returns the .sdf path."""
     if not NAME_RE.match(name):
         raise ValueError("name may only contain letters, digits, '_' and '-'")
@@ -146,10 +157,18 @@ def write(t: Terrain, satellite: Image.Image, name: str, out: Path, dem_source: 
     # raw little-endian heights for tools without image libraries (Hangar places vehicles with it)
     heights_dm = np.round((t.heights - t.zmin) * 10).clip(0, 65535).astype("<u2")
     (out / "heights.u16").write_bytes(heights_dm.tobytes())
+    building_sdf = ""
+    triangles = 0
+    if buildings:
+        from .mesh import write_obj
+
+        triangles = write_obj(buildings, t.height_at, out / "buildings.obj")
+        building_sdf = BUILDINGS.format(count=len(buildings))
     sdf = out / f"{name}.sdf"
     sdf.write_text(SDF.format(
         version=__version__, name=name, lat=t.area.lat, lon=t.area.lon, zmin=t.zmin,
         size=t.area.size, relief=t.relief, dem_source=dem_source, img_source=img_source,
+        buildings=building_sdf,
     ), encoding="utf-8")
     meta = {
         "generator": f"hangar-earth {__version__}",
@@ -161,6 +180,8 @@ def write(t: Terrain, satellite: Image.Image, name: str, out: Path, dem_source: 
         "relief_m": round(t.relief, 2),
         "heights": {"file": "heights.u16", "n": int(t.heights.shape[0]), "unit": "decimetres above origin",
                     "order": "row-major, row 0 = north edge, column 0 = west edge"},
+        "buildings": {"count": len(buildings or []), "triangles": triangles, "file": "buildings.obj"}
+        if buildings else None,
         "credits": credits,
     }
     (out / "hangar-earth.json").write_text(json.dumps(meta, indent=2), encoding="utf-8")

@@ -5,6 +5,7 @@ resampled onto the world's local grid."""
 
 from __future__ import annotations
 
+import hashlib
 import math
 import os
 import urllib.request
@@ -25,25 +26,26 @@ MAX_ZOOM = 15  # the data is 10 m; deeper tiles are only upscaled
 TILE = 256
 
 
-def cache_dir() -> Path:
+def cache_dir(url: str = URL) -> Path:
     base = os.environ.get("XDG_CACHE_HOME") or str(Path.home() / ".cache")
-    return Path(base) / "hangar-earth" / "eox-s2cloudless-2016"
+    name = "eox-s2cloudless-2016" if url == URL else "xyz-" + hashlib.sha256(url.encode()).hexdigest()[:16]
+    return Path(base) / "hangar-earth" / name
 
 
-def zoom_for(area: Area, pixels: int) -> int:
+def zoom_for(area: Area, pixels: int, max_zoom: int = MAX_ZOOM) -> int:
     """Smallest zoom whose tiles are at least as sharp as the texture needs."""
     want = area.size / pixels  # metres per texture pixel
-    for z in range(8, MAX_ZOOM + 1):
+    for z in range(8, max_zoom + 1):
         tile_res = 2 * math.pi * EARTH_RADIUS * area.coslat / (TILE * 2 ** z)
         if tile_res <= want * 1.5:
             return z
-    return MAX_ZOOM
+    return max_zoom
 
 
-def _fetch(z: int, x: int, y: int) -> Image.Image:
-    path = cache_dir() / str(z) / str(x) / f"{y}.jpg"
+def _fetch(z: int, x: int, y: int, url: str = URL) -> Image.Image:
+    path = cache_dir(url) / str(z) / str(x) / f"{y}.img"
     if not path.exists():
-        req = urllib.request.Request(URL.format(z=z, x=x, y=y), headers={"User-Agent": "hangar-earth"})
+        req = urllib.request.Request(url.format(z=z, x=x, y=y), headers={"User-Agent": "hangar-earth"})
         with urllib.request.urlopen(req, timeout=30) as r:
             data = r.read()
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -53,16 +55,17 @@ def _fetch(z: int, x: int, y: int) -> Image.Image:
     return Image.open(path).convert("RGB")
 
 
-def texture(area: Area, pixels: int, progress: Callable[[str], None] = print) -> Image.Image:
-    """A pixels x pixels RGB image covering the area, north up."""
-    z = zoom_for(area, pixels)
+def texture(area: Area, pixels: int, progress: Callable[[str], None] = print, url: str = URL,
+            max_zoom: int = MAX_ZOOM) -> Image.Image:
+    """A pixels x pixels RGB image covering the area, north up, from an XYZ tile source."""
+    z = zoom_for(area, pixels, max_zoom)
     west, south, east, north = area.bounds(pad_m=50)
     x0, y0 = (int(v) for v in mercator_tile(north, west, z))
     x1, y1 = (int(v) for v in mercator_tile(south, east, z))
     jobs = [(z, x, y) for x in range(x0, x1 + 1) for y in range(y0, y1 + 1)]
     progress(f"  {len(jobs)} imagery tiles at zoom {z}")
     with ThreadPoolExecutor(max_workers=8) as pool:
-        tiles = list(pool.map(lambda j: _fetch(*j), jobs))
+        tiles = list(pool.map(lambda j: _fetch(*j, url=url), jobs))
     mosaic = Image.new("RGB", ((x1 - x0 + 1) * TILE, (y1 - y0 + 1) * TILE))
     for (_, x, y), tile in zip(jobs, tiles):
         mosaic.paste(tile, ((x - x0) * TILE, (y - y0) * TILE))

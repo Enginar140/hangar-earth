@@ -21,6 +21,52 @@ heightmap, the satellite texture, a normal map, and credits for the data.
 |---|---|---|
 | ![heightmap](docs/images/heightmap.png) | ![satellite](docs/images/satellite.jpg) | ![nose camera](docs/images/nose-camera.jpg) |
 
+## Buildings
+
+Buildings come from OpenStreetMap and are on by default (`--no-buildings`
+leaves them out). Heights come from `height` or `building:levels` tags, or
+from a typical height for the building type. Every building becomes walls
+and a flat roof in **one mesh**, so a district of thousands of buildings
+stays fast. The mesh collides: a box dropped on the 76 m tower in Kızılay
+lands on its roof.
+
+![Kızılay, Ankara: 1646 OSM buildings on Copernicus terrain](docs/images/kizilay-buildings.jpg)
+
+## Sharper than 30 m / 10 m
+
+The free global data stops at 30 m terrain and 10 m imagery. Sharper
+satellite maps (Google, Bing, Esri) do not allow this use. You can still go
+sharper with data you are allowed to use:
+
+- `--dem FILE.tif`: your own elevation, such as a drone survey DSM, LiDAR, or
+  a national DEM, in any coordinate system. It replaces the global terrain
+  where it covers the area. The heightmap resolution follows its pixel size,
+  up to 4097 samples per edge.
+- `--imagery FILE.tif`: your own orthophoto (RGB GeoTIFF, any coordinate
+  system), for example from OpenDroneMap. Large files are read only at the
+  resolution needed. Textures can be up to 8192 px.
+- `--imagery-url TEMPLATE`: XYZ tiles from a service whose terms allow it,
+  with `--imagery-zoom` and `--imagery-credit`. You are responsible for the
+  source's license.
+
+Some countries publish open aerial imagery: the Netherlands (PDOK, CC BY 4.0),
+France (IGN), Spain (PNOA), Switzerland (swisstopo) and the US (NAIP). Delft
+with PDOK's open 8 cm imagery, downsampled to 15 cm per pixel:
+
+```bash
+hangar-earth create --lat 52.0116 --lon 4.3571 --size 600 --name delft --texture 4096 \
+  --imagery-url 'https://service.pdok.nl/hwh/luchtfotorgb/wmts/v1_0/Actueel_orthoHR/EPSG:3857/{z}/{x}/{y}.jpeg' \
+  --imagery-zoom 19 --imagery-credit "Luchtfoto © Beeldmateriaal Nederland / PDOK, CC BY 4.0"
+```
+
+| Open aerial imagery, 15 cm per pixel | Sentinel-2, 10 m |
+|---|---|
+| ![Delft, aerial](docs/images/delft-aerial-15cm.jpg) | ![Delft, Sentinel-2](docs/images/delft-sentinel2-10m.jpg) |
+
+A vertical datum note: Copernicus heights are above the geoid (EGM2008). If
+your DEM uses ellipsoid heights, it can sit tens of metres off at its edges.
+Convert it first.
+
 ## What you get
 
 - **Terrain** from the [Copernicus DEM GLO-30](https://spacedata.copernicus.eu/collections/copernicus-digital-elevation-model).
@@ -74,7 +120,11 @@ sample). `hangar-earth info FOLDER` shows a world's metadata.
   ridges are right, but trees, walls and roads are not modelled as shapes.
   The texture looks soft close to the ground.
 - **Size**: a few km² runs well. Large areas are slow to render.
-- **No buildings yet**: OpenStreetMap buildings are planned.
+- **Buildings are boxes with flat roofs**: no roof shapes or textures. OSM
+  coverage varies: city centres are usually complete, and villages may miss
+  buildings. The Copernicus DEM is a surface model, so in dense cities the
+  ground is a little raised where buildings stand. Buildings sit on the
+  lowest point of their footprint.
 - **Imagery from 2016**: the newer cloudless mosaics are licensed for
   non-commercial use only, so the CC BY 2016 one is used.
 
@@ -85,6 +135,8 @@ and each world gets an `ATTRIBUTION.txt`. Keep it when you share the world:
 
 - Copernicus DEM GLO-30: © DLR e.V. 2010-2014 and © Airbus Defence and Space GmbH 2014-2018, provided under COPERNICUS by the European Union and ESA; all rights reserved.
 - Sentinel-2 cloudless - https://s2maps.eu by EOX IT Services GmbH (Contains modified Copernicus Sentinel data 2016), licensed CC BY 4.0.
+- Buildings © OpenStreetMap contributors, available under the Open Database License (ODbL).
+- Your own files and tile sources: their own terms. `--imagery-credit` goes into `ATTRIBUTION.txt`.
 
 ## Development
 
@@ -117,8 +169,16 @@ hangar-earth create --lat 39.88 --lon 33.23 --size 3000 --name ankara_hills   # 
   konumlarıdır.
 - **ArduPilot'a hazır**: gerekli Gazebo sistemleri yüklü. Fizik araziyi zemin
   olarak görür.
-- **Sınırlar**: 30 m arazi ve 10 m görüntü olduğu için tepe ve vadiler doğru
-  çıkar, ağaç ve duvar gibi ayrıntılar olmaz. Birkaç km² rahat çalışır.
-  Binalar (OpenStreetMap) henüz yok, planlanıyor.
+- **Binalar**: OpenStreetMap'ten, varsayılan olarak açık (`--no-buildings`
+  ile kapatılır). Yükseklik `height` ya da kat sayısı etiketinden, yoksa bina
+  tipinden gelir. Tüm binalar tek bir modelde birleşir, bu yüzden hızlıdır.
+  Fizikte katıdır, yani çatıya inilebilir.
+- **Daha yüksek çözünürlük**: açık ve dünya çapında veri 30 m arazi ve 10 m
+  görüntüde biter. Daha keskini için kendi verini kullanabilirsin:
+  `--dem dosya.tif` (drone DSM'i, LiDAR, ulusal DEM; herhangi bir koordinat
+  sistemi), `--imagery dosya.tif` (örn. OpenDroneMap ortofotosu) ya da
+  kullanım hakkın olan bir karo servisi: `--imagery-url`. Yukarıda Delft
+  örneği var: 15 cm açık hava fotoğrafı ile 10 m Sentinel-2 karşılaştırması.
+- **Sınırlar**: binalar düz çatılı kutular. OSM kapsaması yerden yere değişir.
 - **Lisans**: kod MIT. İndirilen verinin atıf bilgileri her dünyanın
   `ATTRIBUTION.txt` dosyasında; dünyayı paylaşırken bu dosyayı da paylaş.

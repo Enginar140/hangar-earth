@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.2.0 (2026-10-18)
+
+- **Buildings from OpenStreetMap** (on by default, `--no-buildings`): heights from `height`,
+  `building:levels` or the building type; all buildings extruded into one OBJ mesh (walls and
+  flat roofs, ear-clipped, outward normals) that renders fast and collides. Overpass queries
+  retry with backoff on two servers and are cached.
+- **Your own data**: `--dem FILE.tif` and `--imagery FILE.tif` in any coordinate system replace the
+  global data where they cover the area; big files are read at the needed resolution; heightmap
+  and texture sizes follow their pixel size (up to 4097 samples, 8192 px).
+- **Any XYZ tile source you may use**: `--imagery-url`, `--imagery-zoom`, `--imagery-credit`.
+  Example in the README with the Netherlands' open 8 cm aerial imagery.
+- Verified in Gazebo Harmonic: Kızılay (1646 buildings) renders and a box lands on a 76 m roof;
+  Delft with 15 cm open imagery.
+
 ## 0.1.0 (2026-10-18)
 
 First release.

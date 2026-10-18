@@ -63,7 +63,7 @@ def test_elevation_samples_tiles_and_treats_missing_as_sea(tmp_path, monkeypatch
 def test_imagery_is_north_up(monkeypatch, tmp_path):
     monkeypatch.setenv("XDG_CACHE_HOME", str(tmp_path))
 
-    def fake_fetch(z, x, y):  # red grows southwards across tiles, green eastwards
+    def fake_fetch(z, x, y, url=None):  # red grows southwards across tiles, green eastwards
         tile = np.zeros((256, 256, 3), np.uint8)
         tile[..., 0] = (y * 37) % 256
         tile[..., 1] = (x * 37) % 256
