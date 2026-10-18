@@ -1,0 +1,41 @@
+[project]
+name = "hangar-earth"
+dynamic = ["version"]
+description = "Gazebo worlds from real places: Copernicus terrain and Sentinel-2 imagery, ready for ArduPilot SITL."
+readme = "README.md"
+requires-python = ">=3.11"
+license = "MIT"
+authors = [{ name = "Enginar140" }]
+keywords = ["gazebo", "terrain", "heightmap", "dem", "sentinel-2", "ardupilot", "simulation"]
+dependencies = [
+    "rasterio>=1.4",
+    "numpy>=1.26",
+    "pillow>=10",
+]
+
+[project.scripts]
+hangar-earth = "hangar_earth.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/Enginar140/hangar-earth"
+
+[dependency-groups]
+dev = ["pytest>=8", "ruff>=0.6"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.version]
+path = "src/hangar_earth/__init__.py"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/hangar_earth"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "B", "UP"]
+ignore = ["B905"]
