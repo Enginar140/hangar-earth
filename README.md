@@ -30,6 +30,11 @@ and a flat roof in **one mesh**, so a district of thousands of buildings
 stays fast. The mesh collides: a box dropped on the 76 m tower in Kızılay
 lands on its roof.
 
+Thousands of buildings make the physics slower, since every vehicle is
+checked against every triangle. If you only need to *see* the city,
+`--building-collision none` keeps the buildings visual only: vehicles fly
+through them and the simulation runs faster.
+
 ![Kızılay, Ankara: 1646 OSM buildings on Copernicus terrain](docs/images/kizilay-buildings.jpg)
 
 ## Sharper than 30 m / 10 m
@@ -172,7 +177,9 @@ hangar-earth create --lat 39.88 --lon 33.23 --size 3000 --name ankara_hills   # 
 - **Binalar**: OpenStreetMap'ten, varsayılan olarak açık (`--no-buildings`
   ile kapatılır). Yükseklik `height` ya da kat sayısı etiketinden, yoksa bina
   tipinden gelir. Tüm binalar tek bir modelde birleşir, bu yüzden hızlıdır.
-  Fizikte katıdır, yani çatıya inilebilir.
+  Fizikte katıdır, yani çatıya inilebilir. Binlerce bina fiziği yavaşlatır;
+  şehri yalnızca görmek yetiyorsa `--building-collision none` binaları sadece
+  görüntü yapar (araçlar içinden geçer, simülasyon hızlanır).
 - **Daha yüksek çözünürlük**: açık ve dünya çapında veri 30 m arazi ve 10 m
   görüntüde biter. Daha keskini için kendi verini kullanabilirsin:
   `--dem dosya.tif` (drone DSM'i, LiDAR, ulusal DEM; herhangi bir koordinat

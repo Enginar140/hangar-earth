@@ -102,7 +102,8 @@ def cmd_create(args) -> int:
     else:
         print("[3/4] buildings: skipped (--no-buildings)")
     print("[4/4] writing the world")
-    sdf = write(terrain, satellite, args.name, out, dem_source, img_source, credits, found)
+    sdf = write(terrain, satellite, args.name, out, dem_source, img_source, credits, found,
+                building_collision=args.building_collision)
     print(f"done in {time.time() - started:.0f} s: {sdf}")
     print(f"  try it:  GZ_SIM_RESOURCE_PATH={out} gz sim {sdf}")
     return 0
@@ -136,6 +137,8 @@ def main(argv: list[str] | None = None) -> int:
     c.add_argument("--imagery-credit", help="attribution text for --imagery-url, written to ATTRIBUTION.txt")
     c.add_argument("--no-buildings", dest="buildings", action="store_false",
                    help="leave out OpenStreetMap buildings")
+    c.add_argument("--building-collision", choices=("mesh", "none"), default="mesh",
+                   help="'none' makes buildings visual only: faster physics, vehicles pass through (default mesh)")
     i = sub.add_parser("info", help="show a generated world's metadata")
     i.add_argument("world", help="the world's folder")
     args = p.parse_args(argv)

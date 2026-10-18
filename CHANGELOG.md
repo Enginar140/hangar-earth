@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.3.0 (2026-10-18)
+
+- `--building-collision {mesh,none}`: `none` keeps buildings visual only, so big cities do not slow
+  the physics down. `hangar-earth.json` records it as `buildings.collision`.
+
 ## 0.2.0 (2026-10-18)
 
 - **Buildings from OpenStreetMap** (on by default, `--no-buildings`): heights from `height`,

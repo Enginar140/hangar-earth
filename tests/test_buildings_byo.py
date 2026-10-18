@@ -136,3 +136,16 @@ def test_create_with_buildings_and_own_dem(tmp_path, monkeypatch):
     credits = (out / "ATTRIBUTION.txt").read_text()
     assert "OpenStreetMap" in credits and "dem.tif" in credits
     assert "<uri>buildings.obj</uri>" in (out / "kizilay_test.sdf").read_text()
+
+
+def test_buildings_without_collision(tmp_path):
+    from hangar_earth.world import Terrain, write
+
+    t = Terrain(Area(39.92, 32.85, 500), np.full((17, 17), 900.0))
+    b = osm.Building([(0, 0), (10, 0), (10, 10), (0, 10)], 12.0, "yes", 7)
+    for mode, collides in (("mesh", True), ("none", False)):
+        out = tmp_path / mode
+        sdf = write(t, Image.new("RGB", (64, 64)), "w", out, "", "", [], [b], building_collision=mode).read_text()
+        model = sdf[sdf.index('<model name="buildings">'):]
+        assert ("<collision" in model) is collides and "<visual" in model
+        assert json.loads((out / "hangar-earth.json").read_text())["buildings"]["collision"] is collides

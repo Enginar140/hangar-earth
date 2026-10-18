@@ -137,15 +137,21 @@ BUILDINGS = """
       <!-- {count} buildings from OpenStreetMap in one mesh -->
       <static>true</static>
       <link name="link">
-        <collision name="collision"><geometry><mesh><uri>buildings.obj</uri></mesh></geometry></collision>
-        <visual name="visual"><geometry><mesh><uri>buildings.obj</uri></mesh></geometry></visual>
+{collision}        <visual name="visual"><geometry><mesh><uri>buildings.obj</uri></mesh></geometry></visual>
       </link>
     </model>"""
+BUILDING_COLLISION = ("        <collision name=\"collision\"><geometry><mesh><uri>buildings.obj</uri></mesh>"
+                      "</geometry></collision>\n")
 
 
 def write(t: Terrain, satellite: Image.Image, name: str, out: Path, dem_source: str, img_source: str,
-          credits: list[str], buildings: list | None = None) -> Path:
-    """Write <out>/<name>.sdf and its files. Returns the .sdf path."""
+          credits: list[str], buildings: list | None = None, building_collision: str = "mesh") -> Path:
+    """Write <out>/<name>.sdf and its files. Returns the .sdf path.
+
+    building_collision "none" leaves the buildings visual only: vehicles fly
+    through them, but physics no longer checks thousands of triangles each step."""
+    if building_collision not in ("mesh", "none"):
+        raise ValueError("building_collision is 'mesh' or 'none'")
     if not NAME_RE.match(name):
         raise ValueError("name may only contain letters, digits, '_' and '-'")
     out.mkdir(parents=True, exist_ok=True)
@@ -163,7 +169,8 @@ def write(t: Terrain, satellite: Image.Image, name: str, out: Path, dem_source: 
         from .mesh import write_obj
 
         triangles = write_obj(buildings, t.height_at, out / "buildings.obj")
-        building_sdf = BUILDINGS.format(count=len(buildings))
+        collision = BUILDING_COLLISION if building_collision == "mesh" else ""
+        building_sdf = BUILDINGS.format(count=len(buildings), collision=collision)
     sdf = out / f"{name}.sdf"
     sdf.write_text(SDF.format(
         version=__version__, name=name, lat=t.area.lat, lon=t.area.lon, zmin=t.zmin,
@@ -180,7 +187,8 @@ def write(t: Terrain, satellite: Image.Image, name: str, out: Path, dem_source: 
         "relief_m": round(t.relief, 2),
         "heights": {"file": "heights.u16", "n": int(t.heights.shape[0]), "unit": "decimetres above origin",
                     "order": "row-major, row 0 = north edge, column 0 = west edge"},
-        "buildings": {"count": len(buildings or []), "triangles": triangles, "file": "buildings.obj"}
+        "buildings": {"count": len(buildings or []), "triangles": triangles, "file": "buildings.obj",
+                      "collision": building_collision == "mesh"}
         if buildings else None,
         "credits": credits,
     }
